@@ -1,0 +1,45 @@
+<div class="container">
+  <!-- ページタイトル -->
+  <h1>お問い合わせフォーム</h1>
+
+  <!-- フォーム定義開始 -->
+  <form name="form" class="form-horizontal" ng-init="sex='無回答'">
+
+    <!-- お名前 -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">お名前</label>
+      <div class="col-sm-9">
+        <input type="text" class="form-control" name="name" ng-model="name" required>
+      </div>
+    </div>
+
+    <!-- 性別 -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">性別</label>
+      <div class="col-sm-9">
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'無回答'">無回答/その他</label>
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'男性'">男性</label>
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'女性'">女性</label>
+      </div>
+    </div>
+
+    <!-- メールアドレス -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">メールアドレス</label>
+      <div class="col-sm-9">
+        <input type="email" class="form-control" name="email" ng-model="email" autocomplete="off" required>
+      </div>
+    </div>
+
+    <!-- 送信ボタン -->
+    <div class="form-group">
+      <div class="col-sm-offset-3 col-sm-9">
+        <button type="submit" class="btn btn-primary" ng-disabled="!form.$valid" ng-click="submit()">この内容で送信する</button>
+      </div>
+    </div>
+
+  <!-- フォーム定義終了 -->
+  </form>
+
+</div>
+
