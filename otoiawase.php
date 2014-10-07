@@ -108,10 +108,6 @@ function check_xsrf_token() {
   return isset($headers["X-XSRF-TOKEN"]) && $headers["X-XSRF-TOKEN"] == session_id();
 }
 
-function decode_hex($hex) {
-  return mb_convert_encoding(pack('H*',$hex),'UTF-8','UTF-16');
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!check_xsrf_token()) {
     header("HTTP/1.0 403 Forbidden"); 
@@ -164,7 +160,7 @@ if (!function_exists("mb_send_mail")) {
 }
 $ua = $_SERVER['HTTP_USER_AGENT'];
 if ($ua) {
-  if (preg_match("/MSIE ([0-9]+)\./", $ua, $matches, PREG_OFFSET_CAPTURE, 0)) {
+  if (preg_match("/MSIE ([0-9]+)/", $ua, $matches, PREG_OFFSET_CAPTURE, 0)) {
     $ie_version = (int)$matches[1][0];
     if ($ie_version < 9) {
       echo "古いInternet Explorer(バージョン9未満)は使用できません。検出されたバージョン:" . $ie_version;
