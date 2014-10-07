@@ -132,7 +132,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json["user_agent"] = $_SERVER['HTTP_USER_AGENT'];
     $json["remote_addr"] = $_SERVER['REMOTE_ADDR'];
 
-    if (!mb_send_mail(EMAIL_TO, EMAIL_SUBJECT, print_r($json, TRUE), "From: " . EMAIL_FROM)) {
+    if (defined("JSON_PRETTY_PRINT") && defined("JSON_UNESCAPED_UNICODE")) {
+      $json = json_encode($json, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
+    } else {
+      $json = print_r($json, TRUE);
+    }
+
+    if (!mb_send_mail(EMAIL_TO, EMAIL_SUBJECT, $json, "From: " . EMAIL_FROM)) {
       throw new Exception("システムエラー: メールの送信に失敗しました。");
     }
   }
@@ -147,13 +153,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   exit();
 }
 // else
+header('Content-Type: text/html;charset=UTF-8');
 if (!function_exists("json_decode")) {
-  echo "このPHPはJSONに対応していません。";
+  echo "このPHPは<a href=\"http://php.net/manual/ja/book.json.php\">JSON</a>に対応していません。";
   exit();
 }
 if (!function_exists("mb_send_mail")) {
-  echo "このPHPはmbstringに対応していません。";
+  echo "このPHPは<a href=\"http://php.net/manual/ja/mbstring.installation.php\">mbstring</a>に対応していません。";
   exit();
+}
+$ua = $_SERVER['HTTP_USER_AGENT'];
+if ($ua) {
+  if (preg_match("/MSIE ([0-9]+)\./", $ua, $matches, PREG_OFFSET_CAPTURE, 0)) {
+    $ie_version = (int)$matches[1][0];
+    if ($ie_version < 9) {
+      echo "古いInternet Explorer(バージョン9未満)は使用できません。検出されたバージョン:" . $ie_version;
+      exit();
+    }
+  }
 }
 setcookie("XSRF-TOKEN", session_id());
 ?><html lang="ja" ng-app="Otoiawase">
