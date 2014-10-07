@@ -22,8 +22,9 @@ define("FORM_HTML", <<< 'EOM'
     <!-- お名前 -->
     <div class="form-group">
       <label class="col-sm-3 control-label">お名前</label>
-      <div class="col-sm-9">
+      <div class="col-sm-9" ng-class="{'has-error':form.name.$invalid && form.name.$dirty}">
         <input type="text" class="form-control" name="name" ng-model="name" required>
+   	<span class="text-danger" ng-show="form.name.$error.required">必須項目です</span>
       </div>
     </div>
 
@@ -40,8 +41,10 @@ define("FORM_HTML", <<< 'EOM'
     <!-- メールアドレス -->
     <div class="form-group">
       <label class="col-sm-3 control-label">メールアドレス</label>
-      <div class="col-sm-9">
+      <div class="col-sm-9" ng-class="{'has-error':form.email.$invalid && form.email.$dirty}">
         <input type="email" class="form-control" name="email" ng-model="email" autocomplete="off" required>
+   	<span class="text-danger" ng-show="form.email.$error.required">必須項目です</span>
+   	<span class="text-danger" ng-show="form.email.$error.email">正しいメールアドレスを入力してください</span>
       </div>
     </div>
 
