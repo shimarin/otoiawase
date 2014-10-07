@@ -1,16 +1,78 @@
 <?php
+///////////////////////////////////////////////////////////////////////////////
+// PHP+AngularJS+Bootstrapお問い合わせメールフォーム
+// Copyright (c) 2014 Walbrix Corporation  http://www.walbrix.com/jp/
+// MITライセンス
 // 設定ここから ///////////////////////////////////////////////////////////////
 define("EMAIL_TO", "お問い合わせ内容を受信するメールアドレス"); // 必須
 define("EMAIL_FROM", "メールのFrom欄に記載するアドレス"); // 必須
 
-define("BACK_TO", null); // フォーム送信成功後の戻り先URL nullの場合戻るボタン非表示
-define("BACK_TO_TEXT", "戻る");
-
-define("FORM_HTML", "form.html");
+// ページの <title>要素に入る内容
 define("TITLE", "お問い合わせフォーム");
-define("THANKS_MESSAGE", "お問い合わせありがとうございました。");
 
+// お問い合わせ内容を通知するメールの題名
 define("EMAIL_SUBJECT", "お問い合わせがありました");
+
+// フォーム本体のHTML定義
+define("FORM_HTML", <<< 'EOM'
+<div class="container">
+  <!-- ページタイトル -->
+  <h1 class="text-center"><span class="glyphicon glyphicon-envelope"></span> お問い合わせフォーム</h1>
+
+  <!-- フォーム定義開始 -->
+  <form name="form" class="form-horizontal" ng-init="sex='無回答'">
+
+    <!-- お名前 -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">お名前</label>
+      <div class="col-sm-9">
+        <input type="text" class="form-control" name="name" ng-model="name" required>
+      </div>
+    </div>
+
+    <!-- 性別 -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">性別</label>
+      <div class="col-sm-9">
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'無回答'">無回答/その他</label>
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'男性'">男性</label>
+        <label class="radio-inline"><input type="radio" ng-model="sex" ng-value="'女性'">女性</label>
+      </div>
+    </div>
+
+    <!-- メールアドレス -->
+    <div class="form-group">
+      <label class="col-sm-3 control-label">メールアドレス</label>
+      <div class="col-sm-9">
+        <input type="email" class="form-control" name="email" ng-model="email" autocomplete="off" required>
+      </div>
+    </div>
+
+    <!-- 送信ボタン -->
+    <div class="form-group">
+      <div class="col-sm-offset-3 col-sm-9">
+        <button type="submit" class="btn btn-primary" ng-disabled="!form.$valid" ng-click="submit()"><span class="glyphicon glyphicon-send"></span> この内容で送信する</button>
+      </div>
+    </div>
+
+  <!-- フォーム定義終了 -->
+  </form>
+
+</div>
+EOM
+);
+
+// フォーム送信後に表示されるモーダルの定義
+define("THANKS_HTML", <<< 'EOM'
+<div class="modal-header">送信完了</div>
+<div class="modal-body">
+  お問い合わせありがとうございました。
+</div>
+<div class="modal-footer">
+  <a class="btn btn-primary" href="#" onClick="history.back(); return false;"><span class="glyphicon glyphicon-chevron-left"></span> 戻る</a>
+</div>
+EOM
+);
 // 設定ここまで ///////////////////////////////////////////////////////////////
 mb_language("Japanese");
 mb_internal_encoding("UTF-8");
@@ -26,6 +88,10 @@ function check_xsrf_token() {
   return isset($headers["X-XSRF-TOKEN"]) && $headers["X-XSRF-TOKEN"] == session_id();
 }
 
+function decode_hex($hex) {
+  return mb_convert_encoding(pack('H*',$hex),'UTF-8','UTF-16');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (!check_xsrf_token()) {
     header("HTTP/1.0 403 Forbidden"); 
@@ -35,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   header('Content-Type: application/json');
   try {
+    if (!defined("EMAIL_TO") || !check_email(EMAIL_TO) || !defined("EMAIL_FROM") || !check_email(EMAIL_FROM)) {
+      throw new Exception("EMAIL_TO 又は EMAIL_FROM定数が正しく設定されていません");
+    }
     $json = file_get_contents('php://input');
     if (strlen($json) > 10240) {
       throw new Exception("送信データが大きすぎます (>10kb)");
@@ -42,8 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $json = json_decode($json, true);
     $json["user_agent"] = $_SERVER['HTTP_USER_AGENT'];
     $json["remote_addr"] = $_SERVER['REMOTE_ADDR'];
-    $json = json_encode($json, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
-    if (!mb_send_mail(EMAIL_TO, EMAIL_SUBJECT, $json, "From: " . EMAIL_FROM)) {
+
+    if (!mb_send_mail(EMAIL_TO, EMAIL_SUBJECT, print_r($json, TRUE), "From: " . EMAIL_FROM)) {
       throw new Exception("システムエラー: メールの送信に失敗しました。");
     }
   }
@@ -58,6 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   exit();
 }
 // else
+if (!function_exists("json_decode")) {
+  echo "このPHPはJSONに対応していません。";
+  exit();
+}
+if (!function_exists("mb_send_mail")) {
+  echo "このPHPはmbstringに対応していません。";
+  exit();
+}
 setcookie("XSRF-TOKEN", session_id());
 ?><html lang="ja" ng-app="Otoiawase">
   <head>
@@ -65,8 +142,9 @@ setcookie("XSRF-TOKEN", session_id());
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.20/angular.min.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.20/angular-resource.min.js"></script>
+    <?php if (defined("STYLESHEET")) {?><link rel="stylesheet" href="<?php echo STYLESHEET ?>"><?php } ?>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular-resource.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.11.0/ui-bootstrap-tpls.min.js"></script>
     <script language="javascript">
       angular.module("Otoiawase", ["ngResource","ui.bootstrap"])
@@ -74,10 +152,15 @@ setcookie("XSRF-TOKEN", session_id());
         $scope.submit = function() {
           var obj = {};
           angular.forEach($scope, function(value, key) {
-            if (key !== "this" && key !== "form") {
+            if (key !== "this" && key !== "form" && key.indexOf("__") !== 0) {
               obj[key] = value;
             }
           }, obj);
+
+<?php if (!defined("EMAIL_TO") || !check_email(EMAIL_TO) || !defined("EMAIL_FROM") || !check_email(EMAIL_FROM)) { ?>
+          $scope.__values = obj;
+          $modal.open({templateUrl:"show-email.html",scope: $scope });
+<?php } else { ?>
           var modalInstance = $modal.open({
             templateUrl:"progress.html",
             backdrop:"static",keyboard:false
@@ -87,35 +170,22 @@ setcookie("XSRF-TOKEN", session_id());
             if (result.success) {
               $modal.open({templateUrl:"thanks.html", backdrop:"static",keyboard:false});
             } else {
-              $scope.message = result.info;
+              $scope.__message = result.info;
               $modal.open({templateUrl:"error.html",scope:$scope});
             }
           }, function(result) { 
             modalInstance.close();
-            $scope.message = "HTTPエラー: " + result.data;
+            $scope.__message = "HTTPエラー: " + result.data;
             $modal.open({templateUrl:"error.html",scope:$scope});
           });
+<?php } ?>
         }
       }])
     </script>
     <title><?php echo TITLE;?></title>
   </head>
   <body>
-    <?php if (!check_email(EMAIL_TO)) {?>
-      <span class="text-danger">警告: 送信先メールアドレス(EMAIL_TO)が正しく設定されていません。</span><br>
-    <?php }?>
-    <?php if (!check_email(EMAIL_FROM)) {?>
-      <span class="text-danger">警告: 送信元メールアドレス(EMAIL_FROM)が正しく設定されていません。</span><br>
-    <?php }?>
-    <?php if (!function_exists("json_decode")) {?>
-      <span class="text-danger">警告: このPHPはJSONに対応していません。</span><br>
-    <?php }?>
-    <?php if (!function_exists("mb_send_mail")) {?>
-      <span class="text-danger">警告: このPHPはmbstringに対応していません。</span><br>
-    <?php }?>
-    <?php if (!@include(FORM_HTML)) {?>
-      <span class="text-danger">エラー: <?php echo FORM_HTML?>が設置されていません。</span><br>
-    <?php }?>
+    <?php echo FORM_HTML ?>
     <script type="text/ng-template" id="progress.html">
       <div class="modal-header">送信中...</div>
       <div class="modal-body">
@@ -124,26 +194,28 @@ setcookie("XSRF-TOKEN", session_id());
       </div>
     </script>
     <script type="text/ng-template" id="thanks.html">
-      <div class="modal-header">送信完了</div>
-      <div class="modal-body">
-         <?php echo THANKS_MESSAGE ?>
-      </div>
-      <?php if (BACK_TO) {?>
-      <div class="modal-footer">
-        <a class="btn btn-primary" href="<?php echo BACK_TO?>"><?php echo BACK_TO_TEXT?></a>
-      </div>
-      <?php }?>
+      <?php echo THANKS_HTML ?>
     </script>
     <script type="text/ng-template" id="error.html">
       <div class="modal-header">エラー</div>
       <div class="modal-body">
-        {{message}}
+        {{__message}}
       </div>
-      <?php if (BACK_TO) {?>
       <div class="modal-footer">
-        <button class="btn btn-danger" ng-click="$close()">OK</button>
+        <button class="btn btn-danger" ng-click="$close()">閉じる</button>
       </div>
-      <?php }?>
+    </script>
+    <script type="text/ng-template" id="show-email.html">
+      <div class="modal-header"><?php echo EMAIL_SUBJECT ?></div>
+      <div class="modal-body">
+        <p>{{ __values | json}}</p>
+	<div class="alert alert-danger">送信先メールアドレス(EMAIL_TO) 又は 送信元メールアドレス(EMAIL_FROM)が正しく設定されていないため、メールが送信される代わりにこのウィンドウが表示されています。</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" ng-click="$close()">閉じる</button>
+      </div>
     </script>
   </body>
+  <!-- Copyright (c) 2014 Walbrix Corporation  http://www.walbrix.com/jp/ -->
 </html>
+
