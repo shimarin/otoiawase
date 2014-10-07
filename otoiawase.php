@@ -1,8 +1,29 @@
 <?php
-///////////////////////////////////////////////////////////////////////////////
-// PHP+AngularJS+Bootstrapお問い合わせメールフォーム
-// Copyright (c) 2014 Walbrix Corporation  http://www.walbrix.com/jp/
-// MITライセンス
+/*
+PHP+AngularJS+Bootstrapお問い合わせメールフォーム
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Tomoatsu Shimada/Walbrix Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 // 設定ここから ///////////////////////////////////////////////////////////////
 define("EMAIL_TO", "お問い合わせ内容を受信するメールアドレス"); // 必須
 define("EMAIL_FROM", "メールのFrom欄に記載するアドレス"); // 必須
