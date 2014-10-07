@@ -73,10 +73,30 @@ define("THANKS_HTML", <<< 'EOM'
 </div>
 EOM
 );
+
+// 送信前に表示される確認ウィンドウの定義。このdefine自体を削除すれば確認ウィンドウは表示されず即時に送信が行われる。
+define("CONFIRM_HTML", <<< 'EOM'
+<div class="modal-header">
+  <button type="button" class="close" ng-click="$dismiss()">×</button>
+  お問い合わせ内容の確認
+</div>
+<div class="modal-body">
+  お名前: {{name}}<br>
+  性別: {{sex}}<br>
+  メールアドレス: {{email}}<br>
+</div>
+<div class="modal-footer">
+  <a class="btn btn-default" ng-click="$dismiss()">修正する</a>
+  <a class="btn btn-primary" ng-click="$close()">送信</a>
+</div>
+EOM
+);
 // 設定ここまで ///////////////////////////////////////////////////////////////
 mb_language("Japanese");
 mb_internal_encoding("UTF-8");
 session_start();
+
+$properly_configured = defined("EMAIL_TO") && check_email(EMAIL_TO) && defined("EMAIL_FROM") && check_email(EMAIL_FROM);
 
 function check_email($email) {
   // email address regex from http://blog.livedoor.jp/dankogai/archives/51189905.html
@@ -101,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   header('Content-Type: application/json');
   try {
-    if (!defined("EMAIL_TO") || !check_email(EMAIL_TO) || !defined("EMAIL_FROM") || !check_email(EMAIL_FROM)) {
+    if (!$properly_configured) {
       throw new Exception("EMAIL_TO 又は EMAIL_FROM定数が正しく設定されていません");
     }
     $json = file_get_contents('php://input');
@@ -149,7 +169,7 @@ setcookie("XSRF-TOKEN", session_id());
     <script language="javascript">
       angular.module("Otoiawase", ["ngResource","ui.bootstrap"])
       .run(["$rootScope", "$resource","$modal", function($scope, $resource,$modal) {
-        $scope.submit = function() {
+        function submit() {
           var obj = {};
           angular.forEach($scope, function(value, key) {
             if (key !== "this" && key !== "form" && key.indexOf("__") !== 0) {
@@ -157,10 +177,7 @@ setcookie("XSRF-TOKEN", session_id());
             }
           }, obj);
 
-<?php if (!defined("EMAIL_TO") || !check_email(EMAIL_TO) || !defined("EMAIL_FROM") || !check_email(EMAIL_FROM)) { ?>
-          $scope.__values = obj;
-          $modal.open({templateUrl:"show-email.html",scope: $scope });
-<?php } else { ?>
+<?php if ($properly_configured) { ?>
           var modalInstance = $modal.open({
             templateUrl:"progress.html",
             backdrop:"static",keyboard:false
@@ -178,8 +195,20 @@ setcookie("XSRF-TOKEN", session_id());
             $scope.__message = "HTTPエラー: " + result.data;
             $modal.open({templateUrl:"error.html",scope:$scope});
           });
+<?php } else { ?>
+          $scope.__values = obj;
+          $modal.open({templateUrl:"show-email.html",scope: $scope });
 <?php } ?>
         }
+        $scope.submit = function() {
+<?php if (defined("CONFIRM_HTML")) { ?>
+          $modal.open({templateUrl:"confirm.html",scope:$scope}).result.then(function() {
+            submit();
+          });
+<?php } else { ?>
+	  submit();
+<?php } ?>
+	}
       }])
     </script>
     <title><?php echo TITLE;?></title>
@@ -197,7 +226,10 @@ setcookie("XSRF-TOKEN", session_id());
       <?php echo THANKS_HTML ?>
     </script>
     <script type="text/ng-template" id="error.html">
-      <div class="modal-header">エラー</div>
+      <div class="modal-header">
+        <button type="button" class="close" ng-click="$dismiss()">×</button>
+        エラー
+      </div>
       <div class="modal-body">
         {{__message}}
       </div>
@@ -205,8 +237,17 @@ setcookie("XSRF-TOKEN", session_id());
         <button class="btn btn-danger" ng-click="$close()">閉じる</button>
       </div>
     </script>
+<?php if (defined("CONFIRM_HTML")) { ?>
+    <script type="text/ng-template" id="confirm.html">
+      <?php echo CONFIRM_HTML ?>
+    </script>
+<?php } ?>
+<?php if (!$properly_configured) { ?>
     <script type="text/ng-template" id="show-email.html">
-      <div class="modal-header"><?php echo EMAIL_SUBJECT ?></div>
+      <div class="modal-header">
+        <button type="button" class="close" ng-click="$dismiss()">×</button>
+        <?php echo EMAIL_SUBJECT ?>
+      </div>
       <div class="modal-body">
         <p>{{ __values | json}}</p>
 	<div class="alert alert-danger">送信先メールアドレス(EMAIL_TO) 又は 送信元メールアドレス(EMAIL_FROM)が正しく設定されていないため、メールが送信される代わりにこのウィンドウが表示されています。</div>
@@ -215,6 +256,7 @@ setcookie("XSRF-TOKEN", session_id());
         <button class="btn btn-default" ng-click="$close()">閉じる</button>
       </div>
     </script>
+<?php } ?>
   </body>
   <!-- Copyright (c) 2014 Walbrix Corporation  http://www.walbrix.com/jp/ -->
 </html>
